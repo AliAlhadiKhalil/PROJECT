@@ -1,0 +1,116 @@
+import java.util.concurrent.CountDownLatch;
+
+public class SharedObjectExam {
+    public StringBuilder sharedString;
+    private final CountDownLatch latchT3T4 = new CountDownLatch(2);
+    private final CountDownLatch latchT2T5 = new CountDownLatch(1);
+
+    public SharedObjectExam() {
+        sharedString = new StringBuilder();
+    }
+
+    public void appendString(String text) {
+        sharedString.append(text);
+    }
+
+    class Task1 implements Runnable {
+        public void run() {
+            appendString("T1");
+            System.out.println("END OF T1");
+            latchT2T5.countDown();
+        }
+    }
+
+    class Task2 implements Runnable {
+        public void run() {
+            try {
+                latchT2T5.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            appendString("T2");
+            System.out.println("END OF T2");
+            latchT3T4.countDown();
+        }
+    }
+
+    class Task3 implements Runnable {
+        public void run() {
+            try {
+                latchT3T4.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            appendString("T3");
+            System.out.println("END OF T3");
+        }
+    }
+
+    class Task4 implements Runnable {
+        public void run() {
+            try {
+                latchT3T4.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            appendString("T4");
+            System.out.println("END OF T4");
+        }
+    }
+
+    class Task5 implements Runnable {
+        public void run() {
+            try {
+                latchT2T5.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            appendString("T5");
+            System.out.println("END OF T5");
+        }
+    }
+
+    class EndTask implements Runnable {
+        public void run() {
+            try {
+                latchT3T4.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            appendString("END");
+            System.out.println("THE END");
+            System.out.println(sharedString.toString());
+        }
+    }
+
+    public static void main(String[] args) {
+        SharedObjectExam sharedObject = new SharedObjectExam();
+
+        Thread t1 = new Thread(sharedObject.new Task1());
+        Thread t2 = new Thread(sharedObject.new Task2());
+        Thread t3 = new Thread(sharedObject.new Task3());
+        Thread t4 = new Thread(sharedObject.new Task4());
+        Thread t5 = new Thread(sharedObject.new Task5());
+        Thread endThread = new Thread(sharedObject.new EndTask());
+
+        t1.start();
+        t2.start();
+        t3.start();
+        t4.start();
+        t5.start();
+        endThread.start();
+
+        try {
+            t1.join();
+            t2.join();
+            t3.join();
+            t4.join();
+            t5.join();
+            endThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("END OF MAIN");
+    }
+}
